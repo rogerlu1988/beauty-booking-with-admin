@@ -25,11 +25,17 @@ router.get('/profile', async (req, res) => {
   }
 });
 
+function validHHMM(str) {
+  if (!/^\d{2}:\d{2}$/.test(str)) return false;
+  const [hh, mm] = str.split(':').map(n => parseInt(n, 10));
+  return hh >= 0 && hh < 24 && mm >= 0 && mm < 60;
+}
+
 const UpdateSchema = z.object({
   services: z.array(z.string()).optional(),
   businessHours: z.object({
-    open: z.string().regex(/^\d{2}:\d{2}$/),
-    close: z.string().regex(/^\d{2}:\d{2}$/),
+    open: z.string(),
+    close: z.string(),
   }).optional(),
 });
 
@@ -38,7 +44,21 @@ router.patch('/profile', async (req, res) => {
     const payload = UpdateSchema.parse(req.body || {});
     const update = {};
     if (payload.services) update.services = payload.services;
-    if (payload.businessHours) update.businessHours = payload.businessHours;
+    if (payload.businessHours) {
+      const { open, close } = payload.businessHours;
+      if (!validHHMM(open) || !validHHMM(close)) {
+        return res.status(400).json({ error: 'businessHours must be HH:mm and valid times' });
+      }
+      // ensure open < close
+      const [oH, oM] = open.split(':').map(n => parseInt(n, 10));
+      const [cH, cM] = close.split(':').map(n => parseInt(n, 10));
+      const oMin = oH * 60 + oM;
+      const cMin = cH * 60 + cM;
+      if (!(oMin < cMin)) {
+        return res.status(400).json({ error: 'Open time must be earlier than close time' });
+      }
+      update.businessHours = { open, close };
+    }
     const doc = await ensureProfile(req.user.id);
     Object.assign(doc, update);
     await doc.save();

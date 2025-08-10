@@ -66,7 +66,7 @@ export default function BookingApp() {
   const [openForm, setOpenForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
   const [pros, setPros] = useState([]);
-  const [selectedProId, setSelectedProId] = useState('');
+  const [selectedProId, setSelectedProId] = useState(''); // controls both grid filter and default selection in dialog
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
 
   useEffect(() => {
@@ -81,18 +81,25 @@ export default function BookingApp() {
     (async () => {
       if (!selectedService) return;
       const day = date.format('YYYY-MM-DD');
-      const avail = await getAvailability(day, selectedService._id);
+      const avail = await getAvailability(day, selectedService._id, selectedProId || undefined);
       setSlots(avail);
-      // Load professionals when service changes (simple list of all professionals for now)
-      const list = await getProfessionals();
-      setPros(list);
     })();
-  }, [date, selectedService]);
+  }, [date, selectedService, selectedProId]);
+
+  // Load professionals when the selected service changes; reset pro filter to Any
+  useEffect(() => {
+    (async () => {
+      if (!selectedService) return;
+      const list = await getProfessionals({ serviceId: selectedService._id });
+      setPros(list);
+      setSelectedProId('');
+    })();
+  }, [selectedService]);
 
   const handlePickSlot = (iso) => {
     setOpenForm(true);
     setForm(f => ({ ...f, start: iso }));
-    setSelectedProId('');
+    // keep current selectedProId (grid filter) as default selection in dialog
   };
 
   const handleCreate = async () => {
@@ -147,6 +154,21 @@ export default function BookingApp() {
                 slotProps={{ textField: { fullWidth: true } }}
               />
             </LocalizationProvider>
+            <TextField
+              select fullWidth margin="dense" label="Professional (optional)"
+              value={selectedProId}
+              onChange={(e) => setSelectedProId(e.target.value)}
+              SelectProps={{ native: true }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mt: 2 }}
+            >
+              <option value="">-- Any professional --</option>
+              {pros.map(p => (
+                <option key={p._id} value={p._id}>
+                  {p.name || p.email}
+                </option>
+              ))}
+            </TextField>
             <Box sx={{ mt: 2 }}>
               <TimeGrid slots={slots} onPick={handlePickSlot} />
             </Box>
@@ -178,6 +200,8 @@ export default function BookingApp() {
             value={selectedProId}
             onChange={(e) => setSelectedProId(e.target.value)}
             SelectProps={{ native: true }}
+            InputLabelProps={{ shrink: true }}
+            helperText="This defaults to your selection above."
           >
             <option value="">-- Any professional --</option>
             {pros.map(p => (

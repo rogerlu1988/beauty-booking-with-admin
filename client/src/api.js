@@ -45,6 +45,17 @@ export async function updateProProfile(payload) {
   return data;
 }
 
+// --- Booking management ---
+export async function rescheduleBooking(id, start) {
+  const { data } = await api.patch(`/bookings/${id}/reschedule`, { start });
+  return data;
+}
+
+export async function restoreBooking(id) {
+  const { data } = await api.patch(`/bookings/${id}/restore`);
+  return data;
+}
+
 
 export async function listBookingsAdmin(params) {
   const { data } = await api.get('/bookings/admin', { params });
