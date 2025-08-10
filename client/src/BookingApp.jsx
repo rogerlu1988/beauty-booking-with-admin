@@ -6,7 +6,7 @@ import {
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import { getServices, getAvailability, createBooking } from './api.js';
+import { getServices, getAvailability, createBooking, getProfessionals } from './api.js';
 
 function Hero() {
   return (
@@ -65,6 +65,8 @@ export default function BookingApp() {
   const [slots, setSlots] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '', notes: '' });
+  const [pros, setPros] = useState([]);
+  const [selectedProId, setSelectedProId] = useState('');
   const [snack, setSnack] = useState({ open: false, msg: '', severity: 'success' });
 
   useEffect(() => {
@@ -81,12 +83,16 @@ export default function BookingApp() {
       const day = date.format('YYYY-MM-DD');
       const avail = await getAvailability(day, selectedService._id);
       setSlots(avail);
+      // Load professionals when service changes (simple list of all professionals for now)
+      const list = await getProfessionals();
+      setPros(list);
     })();
   }, [date, selectedService]);
 
   const handlePickSlot = (iso) => {
     setOpenForm(true);
     setForm(f => ({ ...f, start: iso }));
+    setSelectedProId('');
   };
 
   const handleCreate = async () => {
@@ -101,7 +107,8 @@ export default function BookingApp() {
         clientEmail: form.email,
         clientPhone: form.phone,
         notes: form.notes,
-        start: form.start
+        start: form.start,
+        professionalUserId: selectedProId || undefined,
       });
       setOpenForm(false);
       setSnack({ open: true, msg: 'Booking confirmed! Check your email for details.', severity: 'success' });
@@ -166,6 +173,19 @@ export default function BookingApp() {
             fullWidth margin="dense" label="Notes (optional)" multiline minRows={2}
             value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
           />
+          <TextField
+            select fullWidth margin="dense" label="Professional (optional)"
+            value={selectedProId}
+            onChange={(e) => setSelectedProId(e.target.value)}
+            SelectProps={{ native: true }}
+          >
+            <option value="">-- Any professional --</option>
+            {pros.map(p => (
+              <option key={p._id} value={p._id}>
+                {p.name || p.email}
+              </option>
+            ))}
+          </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenForm(false)}>Cancel</Button>

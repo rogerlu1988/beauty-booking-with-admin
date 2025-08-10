@@ -26,6 +26,12 @@ export async function createBooking(payload) {
   return data;
 }
 
+export async function getProfessionals(params = {}) {
+  // params: { q?: string }
+  const { data } = await api.get('/users', { params: { role: 'professional', ...params } });
+  return data; // [{ _id, name, email, phone, role }]
+}
+
 
 export async function listBookingsAdmin(params) {
   const { data } = await api.get('/bookings/admin', { params });
