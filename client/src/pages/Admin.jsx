@@ -4,7 +4,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { listBookingsAdmin, cancelBooking } from '../api';
+import { listBookingsAdmin, cancelBooking, assignBooking } from '../api';
 
 export default function Admin() {
   const [q, setQ] = useState('');
@@ -52,6 +52,8 @@ export default function Admin() {
   useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [page, pageSize]);
   const handleSearch = () => { setPage(0); fetchData(); };
 
+  const [assignEmail, setAssignEmail] = useState('');
+
   const columns = useMemo(() => ([
     { field: 'start', headerName: 'Start', flex: 1, valueFormatter: v => dayjs(v.value).format('YYYY-MM-DD HH:mm') },
     { field: 'end', headerName: 'End', flex: 1, valueFormatter: v => dayjs(v.value).format('YYYY-MM-DD HH:mm') },
@@ -63,25 +65,48 @@ export default function Admin() {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 140,
+      width: 360,
       sortable: false,
       renderCell: (params) => (
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={params.row.status !== 'booked'}
-          onClick={async () => {
-            try {
-              await cancelBooking(params.id);
-              setSnack({ open: true, msg: 'Booking cancelled', severity: 'success' });
-              fetchData();
-            } catch (e) {
-              setSnack({ open: true, msg: e.response?.data?.error || 'Cancel failed', severity: 'error' });
-            }
-          }}
-        >
-          Cancel
-        </Button>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={params.row.status !== 'booked'}
+            onClick={async () => {
+              try {
+                await cancelBooking(params.id);
+                setSnack({ open: true, msg: 'Booking cancelled', severity: 'success' });
+                fetchData();
+              } catch (e) {
+                setSnack({ open: true, msg: e.response?.data?.error || 'Cancel failed', severity: 'error' });
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <TextField
+            size="small"
+            placeholder="pro email"
+            value={assignEmail}
+            onChange={(e) => setAssignEmail(e.target.value)}
+          />
+          <Button
+            size="small"
+            variant="contained"
+            onClick={async () => {
+              try {
+                await assignBooking(params.id, { professionalEmail: assignEmail });
+                setSnack({ open: true, msg: 'Assigned to professional', severity: 'success' });
+                fetchData();
+              } catch (e) {
+                setSnack({ open: true, msg: e.response?.data?.error || 'Assign failed', severity: 'error' });
+              }
+            }}
+          >
+            Assign
+          </Button>
+        </Stack>
       )
     },
   ]), []);

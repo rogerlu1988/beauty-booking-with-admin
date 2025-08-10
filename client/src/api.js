@@ -37,6 +37,12 @@ export async function cancelBooking(id) {
   return data;
 }
 
+export async function assignBooking(id, payload) {
+  // payload: { professionalUserId? , professionalEmail? }
+  const { data } = await api.patch(`/bookings/${id}/assign`, payload);
+  return data;
+}
+
 // --- Auth helpers ---
 export async function login(email, password) {
   const { data } = await axios.post(API_BASE + '/api/auth/login', { email, password });

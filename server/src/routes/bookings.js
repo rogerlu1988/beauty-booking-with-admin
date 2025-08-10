@@ -3,6 +3,8 @@ import express from 'express';
 import { z } from 'zod';
 import Booking from '../models/Booking.js';
 import Service from '../models/Service.js';
+import { authOptional, requireRole } from '../middleware/auth.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -13,13 +15,62 @@ const BookingSchema = z.object({
   clientPhone: z.string().optional(),
   notes: z.string().optional(),
   start: z.string().datetime(), // ISO string
+  // Optional professional assignment at creation time
+  professionalUserId: z.string().optional(),
 });
 
+// --- Assign booking to a professional (admin only) ---
+router.patch('/:id/assign', requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ error: 'Invalid id' });
+    const { professionalUserId, professionalEmail } = req.body || {};
+
+    let proId = professionalUserId;
+    if (!proId && professionalEmail) {
+      const u = await User.findOne({ email: professionalEmail });
+      if (!u) return res.status(404).json({ error: 'Professional user not found by email' });
+      proId = u._id;
+    }
+    if (!proId) return res.status(400).json({ error: 'Provide professionalUserId or professionalEmail' });
+    if (!mongoose.isValidObjectId(proId)) return res.status(400).json({ error: 'Invalid professionalUserId' });
+
+    const updated = await Booking.findByIdAndUpdate(
+      id,
+      { professionalUserId: proId },
+      { new: true }
+    ).populate('serviceId', 'name');
+    if (!updated) return res.status(404).json({ error: 'Booking not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Ensure req.user may be present if provided
+router.use(authOptional);
+
 router.get('/', async (req, res) => {
-  const { date } = req.query;
-  if (date) {
-    const dayStart = new Date(date + 'T00:00:00');
-    const dayEnd = new Date(date + 'T23:59:59');
+  const { date, mine, client } = req.query;
+
+  // Auth-scoped views
+  if (mine === '1') {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const items = await Booking.find({ professionalUserId: req.user.id }).sort({ start: -1 }).limit(200);
+    return res.json({ bookings: items });
+  }
+  if (client === '1') {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const items = await Booking.find({ clientUserId: req.user.id }).sort({ start: -1 }).limit(200);
+    return res.json({ bookings: items });
+  }
+
+  // Public views
+  const { } = req.query;
+  const qDate = date;
+  if (qDate) {
+    const dayStart = new Date(qDate + 'T00:00:00');
+    const dayEnd = new Date(qDate + 'T23:59:59');
     const items = await Booking.find({ start: { $gte: dayStart, $lte: dayEnd } }).sort({ start: 1 });
     return res.json(items);
   }
@@ -49,6 +100,8 @@ router.post('/', async (req, res) => {
 
     const booking = await Booking.create({
       serviceId: service._id,
+      clientUserId: req.user?.id || undefined,
+      professionalUserId: payload.professionalUserId || undefined,
       clientName: payload.clientName,
       clientEmail: payload.clientEmail,
       clientPhone: payload.clientPhone || '',
