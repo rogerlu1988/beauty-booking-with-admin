@@ -16,8 +16,10 @@ export async function getServices() {
   return data;
 }
 
-export async function getAvailability(date, serviceId) {
-  const { data } = await api.get('/availability', { params: { date, serviceId } });
+export async function getAvailability(date, serviceId, professionalUserId) {
+  const params = { date, serviceId };
+  if (professionalUserId) params.professionalUserId = professionalUserId;
+  const { data } = await api.get('/availability', { params });
   return data.slots;
 }
 
@@ -30,6 +32,17 @@ export async function getProfessionals(params = {}) {
   // params: { q?: string }
   const { data } = await api.get('/users', { params: { role: 'professional', ...params } });
   return data; // [{ _id, name, email, phone, role }]
+}
+
+// --- Professional self-service APIs ---
+export async function getProProfile() {
+  const { data } = await api.get('/pro/profile');
+  return data; // { userId, services: [...], businessHours: { open, close } }
+}
+
+export async function updateProProfile(payload) {
+  const { data } = await api.patch('/pro/profile', payload);
+  return data;
 }
 
 

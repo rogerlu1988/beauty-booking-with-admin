@@ -10,6 +10,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProDashboard from './pages/ProDashboard';
+import ProServices from './pages/ProServices';
+import ProAvailability from './pages/ProAvailability';
 
 function AuthButtons() {
   const { user, setToken } = useAuth();
@@ -40,7 +42,15 @@ function NavLinks() {
         <Button component={Link} to="/admin" sx={{ mr: 1 }}>Admin</Button>
       )}
       {user?.role === 'professional' && (
-        <Button component={Link} to="/pro" sx={{ mr: 1 }}>Pro</Button>
+        <>
+          <Button component={Link} to="/pro" sx={{ mr: 1 }}>Pro</Button>
+          <Button component={Link} to="/pro/services" sx={{ mr: 1 }}>
+            My services
+          </Button>
+          <Button component={Link} to="/pro/availability" sx={{ mr: 1 }}>
+            My availability
+          </Button>
+        </>
       )}
     </>
   );
@@ -67,6 +77,8 @@ export default function App() {
             <Route path="/" element={<BookingApp />} />
             <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><Admin /></ProtectedRoute>} />
             <Route path="/pro" element={<ProtectedRoute roles={["professional"]}><ProDashboard /></ProtectedRoute>} />
+            <Route path="/pro/services" element={<ProtectedRoute roles={["professional"]}><ProServices /></ProtectedRoute>} />
+            <Route path="/pro/availability" element={<ProtectedRoute roles={["professional"]}><ProAvailability /></ProtectedRoute>} />
             <Route path="/login" element={<Login onSuccess={() => window.location.assign('/')} />} />
             <Route path="/register" element={<Register onSuccess={() => window.location.assign('/')} />} />
           </Routes>

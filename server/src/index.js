@@ -7,6 +7,7 @@ import bookingsRouter from './routes/bookings.js';
 import availabilityRouter from './routes/availability.js';
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
+import proProfileRouter from './routes/proProfile.js';
 import { authOptional } from './middleware/auth.js';
 import User from './models/User.js';
 
@@ -53,6 +54,7 @@ async function start() {
     app.use('/api/services', servicesRouter);
     app.use('/api/bookings', bookingsRouter);
     app.use('/api/availability', availabilityRouter);
+    app.use('/api/pro', proProfileRouter);
 
     app.get('/api/health', (_req, res) => {
       res.json({ ok: true, now: new Date().toISOString() });

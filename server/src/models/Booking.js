@@ -15,5 +15,7 @@ const BookingSchema = new mongoose.Schema({
 
 // Simple index to speed up date range queries
 BookingSchema.index({ start: 1, end: 1 });
+// Per-professional conflict checks
+BookingSchema.index({ professionalUserId: 1, start: 1, end: 1 });
 
 export default mongoose.model('Booking', BookingSchema);

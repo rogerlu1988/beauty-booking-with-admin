@@ -87,12 +87,16 @@ router.post('/', async (req, res) => {
     const start = new Date(payload.start);
     const end = new Date(start.getTime() + service.durationMinutes * 60000);
 
-    // Check conflicts
-    const conflict = await Booking.findOne({
+    // Check conflicts (per professional if provided)
+    const conflictFilter = {
       status: 'booked',
       start: { $lt: end },
       end: { $gt: start }
-    });
+    };
+    if (payload.professionalUserId) {
+      conflictFilter.professionalUserId = payload.professionalUserId;
+    }
+    const conflict = await Booking.findOne(conflictFilter);
 
     if (conflict) {
       return res.status(409).json({ error: 'Selected time overlaps an existing booking' });
